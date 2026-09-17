@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RSS Reader</title>
+<link rel="stylesheet" href="/index.css"/>
+</head>
+<body>
+
+<!-- ═══════════════ AUTH SCREEN ═══════════════ -->
+<div class="auth-screen" id="authScreen">
+  <div class="auth-card">
+    <h1>RSS <span>Reader</span></h1>
+    <p class="auth-subtitle">Your personal feed, your data.</p>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Sign in</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Create account</button>
+    </div>
+
+    <form id="authForm" onsubmit="return false">
+      <div class="form-field">
+        <label for="authEmail">Email</label>
+        <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email" required/>
+      </div>
+      <div class="form-field">
+        <label for="authPassword">Password</label>
+        <input type="password" id="authPassword" placeholder="••••••••" autocomplete="current-password" required/>
+      </div>
+      <div class="form-field" id="confirmField" style="display:none">
+        <label for="authConfirm">Confirm password</label>
+        <input type="password" id="authConfirm" placeholder="••••••••" autocomplete="new-password"/>
+      </div>
+      <div id="authError" class="auth-error" style="display:none"></div>
+      <button type="submit" class="btn primary" id="authSubmitBtn" onclick="submitAuth()">Sign in</button>
+    </form>
+  </div>
+</div>
+
+<!-- ═══════════════ APP SCREEN ═══════════════ -->
+<div class="app" id="appScreen" style="display:none">
+  <header>
+    <h1>RSS <span>Reader</span></h1>
+    <div style="flex:1"></div>
+    <button class="btn sm" id="refreshAllBtn" title="Refresh all feeds">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+      Refresh
+    </button>
+    <button class="btn sm" id="signOutBtn" title="Sign out" style="margin-left:8px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      Sign out
+    </button>
+  </header>
+
+  <div class="main">
+    <!-- ═══════════════ ISLAND 1: Feed List (sidebar) ═══════════════ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <h2>Feeds</h2>
+        <span id="feedCount" style="font-size:12px;color:var(--muted)">0 feeds</span>
+        <button class="icon-btn" id="openConfigBtn" title="Manage feeds">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+      <div class="feed-list" id="feedList"></div>
+      <div class="sidebar-footer">
+        <button class="btn sm" id="selectAllBtn" style="flex:1">All</button>
+        <button class="btn sm" id="selectNoneBtn" style="flex:1">None</button>
+      </div>
+    </aside>
+
+    <!-- ═══════════════ ISLAND 1b: Config Drawer ═══════════════ -->
+    <div class="config-drawer" id="configDrawer">
+      <div class="config-header">
+        <h2>Manage Feeds</h2>
+        <button class="icon-btn" id="closeConfigBtn" title="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="config-add">
+        <input type="url" id="feedUrlInput" placeholder="https://example.com/feed.xml" autocomplete="off"/>
+        <button class="btn primary sm" id="addFeedBtn">Add</button>
+      </div>
+      <div class="config-list" id="configList"></div>
+    </div>
+    <div class="config-backdrop" id="configBackdrop"></div>
+
+    <!-- ═══════════════ ISLAND 2 + 3: Filter Bar + Items ═══════════════ -->
+    <div class="content">
+      <div class="filter-bar" id="filterBar">
+        <div class="search-wrap">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="searchInput" placeholder="Search articles…"/>
+        </div>
+        <div class="filter-tags" id="filterTags"></div>
+        <span class="item-count" id="itemCount">0 articles</span>
+      </div>
+
+      <div class="items-scroll">
+        <div class="items-grid" id="itemsGrid">
+          <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
+            <p>No feeds yet</p>
+            <small>Add an RSS or Atom feed URL in the sidebar to get started.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/index.js"></script>
+</body>
+</html>
