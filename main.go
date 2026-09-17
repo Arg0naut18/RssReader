@@ -23,7 +23,11 @@ import (
 var staticFiles embed.FS
 
 func main() {
-	addr    := flag.String("addr", ":8080", "listen address")
+	defaultAddr := ":8080"
+	if p := os.Getenv("PORT"); p != "" {
+		defaultAddr = ":" + p
+	}
+	addr    := flag.String("addr", defaultAddr, "listen address")
 	ttl     := flag.Duration("ttl", 15*time.Minute, "feed cache TTL")
 	logFile := flag.String("log", "", "path to log file (empty to disable)")
 	flag.Parse()
