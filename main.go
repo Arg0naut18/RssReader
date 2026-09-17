@@ -25,12 +25,19 @@ var staticFiles embed.FS
 func main() {
 	addr    := flag.String("addr", ":8080", "listen address")
 	ttl     := flag.Duration("ttl", 15*time.Minute, "feed cache TTL")
-	logFile := flag.String("log", "rssreader.log", "path to log file (empty to disable)")
+	logFile := flag.String("log", "", "path to log file (empty to disable)")
 	flag.Parse()
 
 	// Load .env — silently ignored in production where vars are set directly.
 	if err := godotenv.Load(); err != nil {
 		slog.Info("no .env file found, using environment variables")
+	}
+
+	// LOG_FILE env overrides the flag; flag default is empty (disabled).
+	if *logFile == "" {
+		if envLog := os.Getenv("LOG_FILE"); envLog != "" {
+			*logFile = envLog
+		}
 	}
 
 	// Configure structured logger.
