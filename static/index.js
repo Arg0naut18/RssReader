@@ -213,16 +213,17 @@ document.getElementById('feedList').addEventListener('click', e => {
   }
   renderFeedList();
   renderItems();
-  renderFilterTags();
+  // auto-close sidebar on mobile after selecting a feed
+  if (window.innerWidth <= 768) closeMobileSidebar();
 });
 
 document.getElementById('selectAllBtn').addEventListener('click', () => {
   state.feeds.forEach(f => state.activeSources.add(f.title));
-  renderFeedList(); renderItems(); renderFilterTags();
+  renderFeedList(); renderItems();
 });
 document.getElementById('selectNoneBtn').addEventListener('click', () => {
   state.activeSources.clear();
-  renderFeedList(); renderItems(); renderFilterTags();
+  renderFeedList(); renderItems();
 });
 
 // ── Config drawer ──────────────────────────────────────────────
@@ -239,6 +240,34 @@ function closeConfig() {
 document.getElementById('openConfigBtn').addEventListener('click', openConfig);
 document.getElementById('closeConfigBtn').addEventListener('click', closeConfig);
 document.getElementById('configBackdrop').addEventListener('click', closeConfig);
+
+// ── Mobile sidebar toggle ───────────────────────────────────────
+function openMobileSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebarBackdrop').classList.add('open');
+}
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarBackdrop').classList.remove('open');
+}
+
+document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar.classList.contains('open')) {
+    closeMobileSidebar();
+  } else {
+    openMobileSidebar();
+  }
+});
+document.getElementById('sidebarBackdrop').addEventListener('click', closeMobileSidebar);
+
+// ── Desktop sidebar collapse/expand ────────────────────────────
+document.getElementById('collapseSidebarBtn').addEventListener('click', () => {
+  document.getElementById('appScreen').querySelector('.main').classList.add('sidebar-collapsed');
+});
+document.getElementById('expandSidebarBtn').addEventListener('click', () => {
+  document.getElementById('appScreen').querySelector('.main').classList.remove('sidebar-collapsed');
+});
 
 function renderConfigList() {
   const list = document.getElementById('configList');
@@ -295,30 +324,6 @@ async function addFeed() {
 // ═══════════════════════════════════════════════════════════════
 // ISLAND 2 — Filter Bar
 // ═══════════════════════════════════════════════════════════════
-function renderFilterTags() {
-  const sources = [...new Set(state.items.map(i => i.source))].sort();
-  const container = document.getElementById('filterTags');
-  container.innerHTML = sources.map(src => {
-    const color  = tagColor(src);
-    const active = state.activeSources.has(src);
-    return `<span class="tag-chip ${active ? 'active' : ''}" data-source="${esc(src)}" style="color:${color};background:${color}22">
-      <span class="tag-dot"></span>${esc(src)}
-    </span>`;
-  }).join('');
-}
-
-document.getElementById('filterTags').addEventListener('click', e => {
-  const chip = e.target.closest('.tag-chip');
-  if (!chip) return;
-  const src = chip.dataset.source;
-  if (state.activeSources.has(src)) {
-    state.activeSources.delete(src);
-  } else {
-    state.activeSources.add(src);
-  }
-  renderFeedList(); renderFilterTags(); renderItems();
-});
-
 document.getElementById('searchInput').addEventListener('input', e => {
   state.searchQuery = e.target.value.toLowerCase();
   renderItems();
@@ -336,7 +341,6 @@ async function loadItems() {
   if (data && data.errors && data.errors.length) {
     toast('Some feeds failed to load', 'error');
   }
-  renderFilterTags();
   renderItems();
 }
 
