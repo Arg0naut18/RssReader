@@ -450,12 +450,12 @@ header h1 span { color: var(--accent); }
     inset: 56px 0 0 0;
     width: min(300px, 85vw);
     z-index: 50;
+    display: flex;
     transform: translateX(-110%);
     transition: transform .22s ease;
   }
   .sidebar.open {
     transform: translateX(0);
-    display: flex;
   }
 
   /* hide desktop collapse button on mobile */
