@@ -18,12 +18,16 @@ const auth = {
 // ═══════════════════════════════════════════════════════════════
 // App state
 // ═══════════════════════════════════════════════════════════════
+const PAGE_SIZE = 30; // cards rendered per infinite-scroll page
+
 const state = {
   feeds: [],
   items: [],
   activeSources: new Set(),
   searchQuery: '',
   loading: false,
+  filtered: [],     // snapshot of filteredItems() for the current render
+  renderCount: 0,   // how many cards are currently in the DOM
 };
 
 const TAG_COLORS = ['#3b5bdb','#7950f2','#1098ad','#0ca678','#e67700','#c2255c','#5c7cfa','#20c997','#f59f00','#e64980'];
@@ -357,11 +361,15 @@ function filteredItems() {
 
 function renderLoadingGrid() {
   document.getElementById('itemsGrid').innerHTML = '<div class="spinner"></div>';
+  document.getElementById('itemsSentinel').classList.remove('visible');
 }
 
 function renderItems() {
-  const grid  = document.getElementById('itemsGrid');
-  const items = filteredItems();
+  const grid     = document.getElementById('itemsGrid');
+  const sentinel = document.getElementById('itemsSentinel');
+  const items    = filteredItems();
+  state.filtered    = items;
+  state.renderCount = 0;
   document.getElementById('itemCount').textContent = items.length + ' article' + (items.length !== 1 ? 's' : '');
 
   if (items.length === 0) {
@@ -372,26 +380,66 @@ function renderItems() {
       : `<div class="empty-state">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
           <p>No articles match</p><small>Try adjusting your search or tag filters.</small></div>`;
+    sentinel.classList.remove('visible');
     return;
   }
 
-  grid.innerHTML = items.map((item, idx) => buildCard(item, idx)).join('');
-
-  // Delegate card navigation — open the article URL when clicking the card
-  // but NOT when the click target is an inner link (embedded URL in description).
-  grid.querySelectorAll('.item-card[data-href]').forEach(card => {
-    card.addEventListener('click', e => {
-      if (e.target.closest('a, button')) return;
-      window.open(card.dataset.href, '_blank', 'noopener');
-    });
-    card.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        window.open(card.dataset.href, '_blank', 'noopener');
-      }
-    });
-  });
+  grid.innerHTML = '';
+  fillVisible();
 }
+
+// Append one page from state.filtered; returns true if more remain.
+function renderNextPage() {
+  const grid  = document.getElementById('itemsGrid');
+  const items = state.filtered;
+  const start = state.renderCount;
+  const end   = Math.min(start + PAGE_SIZE, items.length);
+
+  let html = '';
+  for (let i = start; i < end; i++) html += buildCard(items[i], i);
+  grid.insertAdjacentHTML('beforeend', html);
+
+  state.renderCount = end;
+  return state.renderCount < items.length;
+}
+
+// Fill the viewport and keep going until the sentinel leaves the preload zone.
+function fillVisible() {
+  const root     = document.querySelector('.items-scroll');
+  const sentinel = document.getElementById('itemsSentinel');
+
+  let more = state.renderCount < state.filtered.length;
+  while (more) {
+    more = renderNextPage();
+    if (sentinel.getBoundingClientRect().top > root.getBoundingClientRect().bottom + 400) break;
+  }
+
+  sentinel.classList.toggle('visible', state.renderCount < state.filtered.length);
+}
+
+function initInfiniteScroll() {
+  const root     = document.querySelector('.items-scroll');
+  const sentinel = document.getElementById('itemsSentinel');
+  new IntersectionObserver(entries => {
+    if (entries.some(e => e.isIntersecting)) fillVisible();
+  }, { root, rootMargin: '400px 0px' }).observe(sentinel);
+}
+
+// Card navigation is delegated once on the grid (cards are appended in pages).
+// Open the article URL on click/Enter unless the target is an inner link/button.
+document.getElementById('itemsGrid').addEventListener('click', e => {
+  const card = e.target.closest('.item-card[data-href]');
+  if (!card || e.target.closest('a, button')) return;
+  window.open(card.dataset.href, '_blank', 'noopener');
+});
+document.getElementById('itemsGrid').addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const card = e.target.closest('.item-card[data-href]');
+  if (!card) return;
+  e.preventDefault();
+  window.open(card.dataset.href, '_blank', 'noopener');
+});
+initInfiniteScroll();
 
 function buildCard(item, idx) {
   const color  = tagColor(item.source);

@@ -381,7 +381,8 @@ header h1 span { color: var(--accent); }
   justify-content: center;
   padding: 60px;
 }
-.spinner::after {
+.spinner::after,
+.items-sentinel::after {
   content: '';
   width: 32px; height: 32px;
   border: 3px solid var(--border);
@@ -389,6 +390,13 @@ header h1 span { color: var(--accent); }
   border-radius: 50%;
   animation: spin .7s linear infinite;
 }
+.items-sentinel {
+  display: none;
+  justify-content: center;
+  padding: 24px 0;
+}
+.items-sentinel.visible { display: flex; }
+.items-sentinel::after { width: 24px; height: 24px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* toast */
